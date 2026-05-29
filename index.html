@@ -4,102 +4,39 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trivia Facial</title>
+    <title>EML Healthcare</title>
 
-    <link rel="stylesheet" href="./css/styles.css" />
-</head>
+    <link rel="stylesheet" href="./css/home.css" />
+</head> 
 
 <body>
-    <div class="page">
-        <main class="game">
-            <!-- HEADER -->
-            <header class="header">
-                <a href="./Home.html">
-                    <div class="brand">
-                        <img src="./imagenes/logoia.png" alt="Logo Home" />
-                    </div>
-                </a>
+    <main class="container">
+        <!-- portada fondo -->
+        <img src="./imagenes/fondo.jpg" alt="Fondo" class="fondo" />
 
-                <img class="logo-ai" src="./imagenes/arbol.png" alt="Logo IA" />
-            </header>
+        <!-- Logo -->
+        <div class="logo">
+            <img src="./imagenes/logo.png" alt="Trivia Facial" class="logo-img" />
+        </div>
 
-            <!-- PUNTAJE -->
-            <section class="score-section">
-                <span class="score-title"> PUNTAJE </span>
+        <!-- Cards -->
+        <a href="./Instrucciones.html">
+            <div class="cards">
+                <img src="./imagenes/cuadro1.png" />
+            </div>
+        </a>
 
-                <div class="score-value">10</div>
-            </section>
+        <div class="signos">
+            <img src="./imagenes/signos.png" />
+        </div>
 
-            <!-- CAMARA -->
-            <section class="camera-card">
-                <div class="camera-box">
-                    <!-- Video cámara -->
-                    <video id="webcam" autoplay playsinline muted></video>
-
-                    <!-- Canvas tracking -->
-                    <canvas id="outputCanvas"></canvas>
-
-                    <!-- Placeholder -->
-                    <!-- <div class="camera-placeholder">
-
-                        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="currentColor" viewBox="0 0 16 16">
-
-                            <path d="M10.5 2a.5.5 0 0 1 .354.146L12 3.293h2A1 1 0 0 1 15 4.293v8.414A1 1 0 0 1 14 13.707H2A1 1 0 0 1 1 12.707V4.293A1 1 0 0 1 2 3.293h2l1.146-1.147A.5.5 0 0 1 5.5 2h5zm-2.5 2.5A3.5 3.5 0 1 0 8 11.5a3.5 3.5 0 0 0 0-7z"/>
-                        </svg>
-
-                    </div> -->
-
-                    <!-- Mensaje IA -->
-                    <div class="ia-message">🧠 IA: acércate y mira a la cámara.</div>
-                </div>
-            </section>
-
-            <!-- PREGUNTA -->
-            <section class="question-card">
-                <h3 class="question-number">PREGUNTA 1</h3>
-
-                <h2 id="questionText" class="question-text">
-                    ¿Qué palabra se usa para guardar datos en programación?
-                </h2>
-
-                <!-- RESPUESTAS -->
-                <div class="answers">
-                    <button class="answer-btn" data-answer="A">
-              <strong> A) Variable </strong>
-
-              <span> Toca tu ojo izquierdo </span>
-            </button>
-
-                    <button class="answer-btn" data-answer="B">
-              <strong> B) Monitor </strong>
-
-              <span> Toca tu ojo derecho </span>
-            </button>
-
-                    <button class="answer-btn" data-answer="C">
-              <strong> C) Ventana </strong>
-
-              <span> Toca tu nariz </span>
-            </button>
-
-                    <button class="answer-btn" data-answer="D">
-              <strong> D) Color </strong>
-
-              <span> Toca tu boca </span>
-            </button>
-                </div>
-
-                <!-- MENSAJE INFERIOR -->
-                <div class="instruction">
-                    <strong> Primero responde. </strong> Luego mueve la cabeza de lado a lado para seguir.
-                </div>
-            </section>
-        </main>
-    </div>
-
-    <script type="module" src="js/script.js"></script>
-
-    <div id="toast" class="toast"></div>
+        <!-- Cards 2 -->
+        <a href="./Instrucciones.html">
+            <div class="cards1">
+                <img src="./imagenes/cuadro2.png" />
+            </div>
+        </a>
+    </main>
 </body>
 
 </html>

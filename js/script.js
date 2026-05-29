@@ -21,21 +21,21 @@ let handLandmarker = null;
 let lastVideoTime = -1;
 
 /* ===================== CONFIG ===================== */
-const TOUCH_HOLD_MS = 850;
-const COOLDOWN_MS = 1000;
+const TOUCH_HOLD_MS = 420; // antes 850: ahora responde mucho más rápido
+const COOLDOWN_MS = 450; // antes 1000: menos espera después de responder
 
-const THRESH_FACTOR_ENTER = 0.10;
-const THRESH_FACTOR_EXIT = 0.15;
-const SWITCH_IMPROVE_RATIO = 0.72;
+const THRESH_FACTOR_ENTER = 0.18; // zona de toque más amplia
+const THRESH_FACTOR_EXIT = 0.28; // evita que se pierda el toque tan fácil
+const SWITCH_IMPROVE_RATIO = 0.60;
 
-const SHAKE_LEFT_TH = -0.14;
-const SHAKE_RIGHT_TH = 0.14;
-const SHAKE_TIMEOUT_MS = 1400;
+const SHAKE_LEFT_TH = -0.09; // giro de cabeza menos exigente
+const SHAKE_RIGHT_TH = 0.09; // giro de cabeza menos exigente
+const SHAKE_TIMEOUT_MS = 1800;
 
-const NEUTRAL_YAW_TH = 0.06;
-const NEUTRAL_REQUIRED_FRAMES = 10;
+const NEUTRAL_YAW_TH = 0.10;
+const NEUTRAL_REQUIRED_FRAMES = 4;
 
-const TARGET_SMOOTH = 0.78;
+const TARGET_SMOOTH = 0.55; // menos suavizado para que siga más rápido
 
 let smoothTargets = {
     leftEye: null,
@@ -98,7 +98,7 @@ let neutralFrames = 0;
 let cachedFaceLm = null;
 let cachedHandLm = null;
 let frameCount = 0;
-const DETECT_EVERY_N_FRAMES = 2;
+const DETECT_EVERY_N_FRAMES = 1; // detectar en cada frame
 
 /* ===================== AUDIO ===================== */
 let audioCtx = null;
@@ -214,6 +214,17 @@ function renderQuestion() {
         instructionDiv.innerHTML = `<strong>Primero responde.</strong> Luego mueve la cabeza de lado a lado para seguir.`;
     }
 }
+
+
+// También permite responder tocando/clickeando los botones.
+// Sirve como respaldo si la cámara tarda en detectar el gesto.
+answerBtns.forEach((btn, i) => {
+    btn.addEventListener("click", () => {
+        if (!answered && performance.now() >= cooldownUntil) {
+            answer(i);
+        }
+    });
+});
 
 /* ===================== GEOMETRÍA ===================== */
 function dist2D(a, b) {
@@ -409,7 +420,7 @@ function nextQuestion() {
     resetOptionStyles();
     renderQuestion();
 
-    cooldownUntil = performance.now() + 900;
+    cooldownUntil = performance.now() + 350;
 
     soundNext();
     showToast("➡️ Siguiente");
@@ -503,9 +514,10 @@ function loop() {
     /* ========= BLOQUEO TOTAL DE LA NUEVA PREGUNTA ========= */
     if (awaitingNeutralAfterNext) {
         const headCentered = Math.abs(yaw) < NEUTRAL_YAW_TH;
-        const handReleased = !indexTip;
 
-        if (headCentered && handReleased) {
+        // Antes exigía soltar la mano para pasar a la siguiente pregunta.
+        // Eso hacía que el juego se sintiera lento. Ahora solo pide centrar la cabeza.
+        if (headCentered) {
             neutralFrames += 1;
         } else {
             neutralFrames = 0;
@@ -516,7 +528,7 @@ function loop() {
         resetOptionStyles();
 
         if (iaMessage) {
-            iaMessage.textContent = "🧠 IA: centra la cabeza y suelta la mano...";
+            iaMessage.textContent = "🧠 IA: centra la cabeza para continuar...";
         }
 
         if (neutralFrames >= NEUTRAL_REQUIRED_FRAMES) {
