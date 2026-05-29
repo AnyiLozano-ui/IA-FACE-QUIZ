@@ -56,25 +56,61 @@ const QUESTIONS = [{
         answer: 0
     },
     {
-        q: "¿Qué estructura sirve para repetir instrucciones varias veces?",
-        options: ["Bucle", "Imagen", "Carpeta", "Fuente"],
+        q: "¿Qué significa la sigla “IA”?",
+        options: ["Integración Analítica", "Inteligencia Artificial", "Información Automatizada", "Innovación Aplicada"],
+        answer: 1
+    },
+    {
+        q: "¿Cuál es la moneda oficial de Japón?",
+        options: ["Won", "Yen", "Euro", "Dólar"],
+        answer: 1
+    },
+    {
+        q: "¿Qué red social nació primero?",
+        options: ["TikTok", "Instagram", "Facebook", "Threads"],
+        answer: 2
+    },
+    {
+        q: "¿Quién pintó “La última cena”?",
+        options: ["Picasso", "Da Vinci", "Van Gogh", "Dalí"],
+        answer: 1
+    },
+    {
+        q: "¿Qué país ganó el Mundial de Fútbol 2022?",
+        options: ["Francia", "Argentina", "Brasil", "Alemania"],
+        answer: 1
+    },
+    {
+        q: "¿Qué compañía es dueña de WhatsApp?",
+        options: ["Meta", "Amazon", "Spotify", "Tesla"],
         answer: 0
     },
     {
-        q: "¿Qué lenguaje corre directamente en el navegador?",
-        options: ["JavaScript", "Excel", "Photoshop", "Word"],
-        answer: 0
+        q: "¿Cuál es el elemento químico representado por “Au”?",
+        options: ["Plata", "Oxígeno", "Oro", "Aluminio"],
+        answer: 2
     },
     {
-        q: "¿Qué palabra se usa para tomar decisiones en código?",
-        options: ["if", "font", "video", "table"],
-        answer: 0
+        q: "¿Qué plataforma es conocida por videos profesionales y networking?",
+        options: ["TikTok", "LinkedIn", "Pinterest", "Snapchat"],
+        answer: 1
     },
     {
-        q: "¿Qué herramienta estás usando aquí para detectar cara y mano?",
-        options: ["MediaPipe", "Canva", "Figma", "PowerPoint"],
-        answer: 0
+        q: "¿Cuál es el océano más profundo del mundo?",
+        options: ["Índico", "Pacífico", "Atlántico", "Ártico"],
+        answer: 1
+    },
+    {
+        q: "¿Qué empresa creó ChatGPT?",
+        options: ["Tesla", "OpenAI", "Google Maps", "Netflix"],
+        answer: 1
+    },
+    {
+        q: "¿Qué vitamina produce el cuerpo principalmente con la luz solar?",
+        options: ["Vitamina C", "Vitamina D", "Vitamina B12", "Vitamina K"],
+        answer: 1
     }
+
 ];
 
 let idxQ = 0;

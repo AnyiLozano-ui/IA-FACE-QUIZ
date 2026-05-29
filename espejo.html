@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espejo Mágico</title>
+  <link rel="stylesheet" href="./css/espejo.css" />
+</head>
+<body>
+
+  <!-- Elementos de audio -->
+  <audio id="bombAudio" src="./imagenes/bomba.mp3" preload="auto"></audio>
+  <audio id="bonusAudio" src="./imagenes/bonus.mp3" preload="auto"></audio>
+
+  <main class="app">
+
+    <header class="header">
+        <a href="./index.html">
+        <img src="./imagenes/magioc.png" alt="Logo" class="logo-secundario">
+        </a>
+        <img src="./imagenes/logo11.png" alt="Espejo Mágico" class="logo-principal">
+        
+    </header>
+
+    <section class="stats">
+      <div class="stat-row">
+        <span>TIEMPO</span>
+        <div class="pill blue" id="timePill"><span id="time">30</span></div>
+      </div>
+
+      <div class="stat-row">
+        <span>PUNTAJE</span>
+        <div class="pill orange" id="scorePill"><span id="score">0</span></div>
+      </div>
+    </section>
+
+    <section class="camera-card">
+      <div class="message">
+        <span class="icon">🧠</span>
+        IA: acércate y mira a la cámara.
+      </div>
+
+      <div class="camera-box">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="canvas"></canvas>
+      </div>
+    </section>
+
+    <div id="gameOverModal" class="modal-overlay hidden">
+      <div class="modal-content">
+        <h2 id="modalTitle">¡JUEGO TERMINADO!</h2>
+        <div id="modalStats" class="modal-stats"></div>
+        <div class="modal-buttons">
+          <button id="playAgainBtn" class="btn btn-primary">🎮 Jugar de Nuevo</button>
+          <button id="exitBtn" class="btn btn-secondary">✕ Salir</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module">
+    import vision from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3'
+    const { FaceLandmarker, FilesetResolver } = vision
+
+    // DOM
+    const video = document.getElementById('video')
+    const canvas = document.getElementById('canvas')
+    const ctx = canvas.getContext('2d')
+
+    const scoreEl = document.getElementById('score')
+    const timeEl = document.getElementById('time')
+    const scorePill = document.getElementById('scorePill')
+    const timePill = document.getElementById('timePill')
+
+    // Imágenes
+    let starImage = null
+    let moonImage = null
+    let bonusImage = null
+    let bombImage = null
+
+    async function loadImages() {
+      return Promise.all([
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => { starImage = img; resolve() }
+          img.src = './imagenes/logo11.png'
+        }),
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => { moonImage = img; resolve() }
+          img.src = './imagenes/arbol1.png'
+        }),
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => { bonusImage = img; resolve() }
+          img.onerror = () => resolve()
+          img.src = './imagenes/bonus.png'
+        }),
+        new Promise(resolve => {
+          const img = new Image()
+          img.onload = () => { bombImage = img; resolve() }
+          img.onerror = () => resolve()
+          img.src = './imagenes/bomba.png'
+        })
+      ])
+    }
+
+    // Sonidos
+    let audioCtx = null
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      }
+    }
+
+    function playBombSound() {
+      try {
+        const audio = document.getElementById('bombAudio')
+        if (audio) {
+          audio.currentTime = 0
+          const playPromise = audio.play()
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => console.log('✓ Bomba reproducida'))
+              .catch(e => console.log('Error bomba:', e.message))
+          }
+        } else {
+          console.log('No se encontró elemento bombAudio')
+        }
+      } catch (e) {
+        console.log('Error:', e)
+      }
+    }
+
+    function playBonusSound() {
+      try {
+        const audio = document.getElementById('bonusAudio')
+        if (audio) {
+          audio.currentTime = 0
+          const playPromise = audio.play()
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => console.log('✓ Bonus reproducido'))
+              .catch(e => console.log('Error bonus:', e.message))
+          }
+        } else {
+          console.log('No se encontró elemento bonusAudio')
+        }
+      } catch (e) {
+        console.log('Error:', e)
+      }
+    }
+
+    function playSoundMultiplier() {
+      try {
+        initAudio()
+        const now = audioCtx.currentTime
+        const osc = audioCtx.createOscillator()
+        const gain = audioCtx.createGain()
+
+        osc.connect(gain)
+        gain.connect(audioCtx.destination)
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(1500, now)
+        osc.frequency.exponentialRampToValueAtTime(2000, now + 0.08)
+
+        gain.gain.setValueAtTime(0.4, now)
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12)
+
+        osc.start(now)
+        osc.stop(now + 0.12)
+      } catch (e) {}
+    }
+
+    function playGameOverSound() {
+      try {
+        initAudio()
+        const now = audioCtx.currentTime
+        const freqs = [400, 300, 200]
+        freqs.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator()
+          const gain = audioCtx.createGain()
+          osc.connect(gain)
+          gain.connect(audioCtx.destination)
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(freq, now + idx * 0.15)
+          gain.gain.setValueAtTime(0.2, now + idx * 0.15)
+          gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.2)
+          osc.start(now + idx * 0.15)
+          osc.stop(now + idx * 0.15 + 0.2)
+        })
+      } catch (e) {}
+    }
+
+    function playCaptureSound(kind) {
+      try {
+        console.log('Captura:', kind)
+        if (kind === 'bomb') {
+          playBombSound()
+        } else if (kind === 'bonus') {
+          playBonusSound()
+        } else if (kind === 'star') {
+          // Sonido para logo - tono agudo y rápido
+          const now = audioCtx.currentTime
+          const osc = audioCtx.createOscillator()
+          const gain = audioCtx.createGain()
+
+          osc.connect(gain)
+          gain.connect(audioCtx.destination)
+
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(800, now)
+          osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1)
+
+          gain.gain.setValueAtTime(0.3, now)
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15)
+
+          osc.start(now)
+          osc.stop(now + 0.15)
+        } else {
+          // Sonido para árbol - tono bajo y resonante
+          const now = audioCtx.currentTime
+          const osc = audioCtx.createOscillator()
+          const gain = audioCtx.createGain()
+
+          osc.connect(gain)
+          gain.connect(audioCtx.destination)
+
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(400, now)
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.2)
+
+          gain.gain.setValueAtTime(0.3, now)
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25)
+
+          osc.start(now)
+          osc.stop(now + 0.25)
+        }
+      } catch (e) {
+        console.log('Audio no disponible')
+      }
+    }
+
+    // Helpers
+    const clamp = (v, a, b) => Math.max(a, Math.min(b, v))
+    const rand = (a, b) => a + Math.random() * (b - a)
+    const nowMs = () => performance.now()
+
+    // GAME
+    let faceLandmarker = null
+    let running = false
+
+    let score = 0,
+        timeLeft = 30,
+        timerId = null
+    let combo = 0
+    let multiplier = 1
+    let lastCaptureTime = 0
+    let capturesInCombo = 0
+    let screenShakeAmount = 0
+    let screenFlashAmount = 0
+    let bgMusic = null
+
+    let orb = { x: 200, y: 200, r: 28 }
+    let smooth = { x: 0.5, y: 0.5 }
+
+    let target = {
+      baseX: 320,
+      baseY: 240,
+      x: 320,
+      y: 240,
+      r: 40,
+      kind: 'star',
+      emoji: '⭐',
+      points: 10,
+      phase: Math.random() * Math.PI * 2,
+      floatAmp: 10,
+      floatSpeed: 2.2,
+      orbitAmp: 8,
+      orbitSpeed: 1.6,
+      spinSpeed: 1.4,
+      pulseSpeed: 3.0,
+    }
+
+    const particles = []
+    const floatingPoints = []
+
+    function spawnFloatingPoints(x, y, points, isBonus = false) {
+      floatingPoints.push({
+        x,
+        y,
+        text: multiplier > 1 ? `+${points * multiplier} x${multiplier}` : `+${points}`,
+        born: nowMs(),
+        life: 1200,
+        vx: rand(-0.5, 0.5),
+        vy: -1.5,
+        opacity: 1,
+        isBonus,
+      })
+    }
+
+    function addCombo() {
+      combo++
+      capturesInCombo++
+      lastCaptureTime = nowMs()
+
+      if (combo > 0 && combo % 3 === 0) {
+        multiplier = Math.pow(2, Math.floor(combo / 3))
+        multiplier = Math.min(multiplier, 16)
+        playSoundMultiplier()
+      }
+    }
+
+    function updateFloatingPoints() {
+      const t = nowMs()
+      for (let i = floatingPoints.length - 1; i >= 0; i--) {
+        const fp = floatingPoints[i]
+        const age = t - fp.born
+        if (age > fp.life) {
+          floatingPoints.splice(i, 1)
+          continue
+        }
+        fp.opacity = Math.max(0, 1 - (age / fp.life))
+        fp.y += fp.vy
+        fp.vy *= 0.98
+      }
+    }
+
+    function drawFloatingPoints() {
+      ctx.font = 'bold 32px system-ui'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+
+      for (const fp of floatingPoints) {
+        ctx.globalAlpha = fp.opacity
+        ctx.fillStyle = 'rgba(255, 220, 0, 1)'
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
+        ctx.shadowBlur = 8
+        ctx.shadowOffsetX = 0
+        ctx.shadowOffsetY = 0
+        ctx.fillText(fp.text, fp.x, fp.y)
+        ctx.shadowColor = 'transparent'
+      }
+      ctx.globalAlpha = 1
+    }
+
+    function spawnConfetti(x, y) {
+      const colors = ['#FFD700', '#FF69B4', '#00CED1', '#32CD32', '#FF6347']
+      for (let i = 0; i < 25; i++) {
+        particles.push({
+          x,
+          y,
+          vx: rand(-4, 4),
+          vy: rand(-5, -1),
+          life: rand(400, 800),
+          born: nowMs(),
+          r: rand(3, 8),
+          kind: 'confetti',
+          color: colors[Math.floor(Math.random() * colors.length)],
+        })
+      }
+    }
+
+    function spawnParticles(x, y, kind) {
+      const n = kind === 'moon' ? 18 : kind === 'bomb' ? 20 : 14
+      for (let i = 0; i < n; i++) {
+        particles.push({
+          x,
+          y,
+          vx: rand(-2.8, 2.8),
+          vy: rand(-3.0, 3.0),
+          life: rand(260, 560),
+          born: nowMs(),
+          r: rand(2, 5),
+          kind,
+        })
+      }
+    }
+
+    function updateParticles() {
+      const t = nowMs()
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i]
+        const age = t - p.born
+        if (age > p.life) {
+          particles.splice(i, 1)
+          continue
+        }
+        if (p.kind !== 'sparkle') p.vy += 0.03
+        p.x += p.vx
+        p.y += p.vy
+      }
+    }
+
+    function drawParticles() {
+      const t = nowMs()
+      for (const p of particles) {
+        const age = t - p.born
+        const a = 1 - age / p.life
+        ctx.globalAlpha = Math.max(0, a)
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
+
+        if (p.kind === 'sparkle')
+          ctx.fillStyle = 'rgba(255,255,255,1)'
+        else if (p.kind === 'confetti')
+          ctx.fillStyle = p.color
+        else if (p.kind === 'bomb')
+          ctx.fillStyle = 'rgba(100,0,0,1)'
+        else
+          ctx.fillStyle =
+            p.kind === 'moon'
+              ? 'rgba(180,220,255,1)'
+              : 'rgba(255,230,140,1)'
+
+        ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    }
+
+    function animateTarget(tSec) {
+      const bob =
+        Math.sin(tSec * target.floatSpeed + target.phase) *
+        target.floatAmp
+      const ox =
+        Math.cos(tSec * target.orbitSpeed + target.phase) *
+        target.orbitAmp
+      const oy =
+        Math.sin(tSec * target.orbitSpeed + target.phase) *
+        (target.orbitAmp * 0.6)
+      target.x = target.baseX + ox
+      target.y = target.baseY + bob + oy
+
+      const pad = target.r + 40
+      target.x = clamp(target.x, pad, canvas.width - pad)
+      target.y = clamp(target.y, pad, canvas.height - pad)
+    }
+
+    function emitSparkles() {
+      const n = target.kind === 'moon' ? 2 : 3
+      for (let i = 0; i < n; i++) {
+        particles.push({
+          x: target.x + rand(-target.r - 8, target.r + 8),
+          y: target.y + rand(-target.r - 8, target.r + 8),
+          vx: rand(-0.5, 0.5),
+          vy: rand(-0.8, 0.2),
+          life: rand(220, 440),
+          born: nowMs(),
+          r: rand(1.5, 3.2),
+          kind: 'sparkle',
+        })
+      }
+    }
+
+    function stopTimer() {
+      if (timerId) clearInterval(timerId)
+      timerId = null
+    }
+
+    function showGameOverModal() {
+      const avgPerSecond = (score / 30).toFixed(1)
+      const statsHTML = `
+        <div style="margin: 0;">📊 Puntaje Final: <strong>${score}</strong></div>
+        <div style="margin: 8px 0;">📈 Promedio: <strong>${avgPerSecond} pts/seg</strong></div>
+        <div style="margin: 8px 0;">🔥 Combo Máximo: <strong>${combo}</strong></div>
+        <div style="margin: 8px 0;">⚡ Multiplicador: <strong>x${multiplier.toFixed(1)}</strong></div>
+      `
+
+      const modal = document.getElementById('gameOverModal')
+      const statsDiv = document.getElementById('modalStats')
+      statsDiv.innerHTML = statsHTML
+      modal.classList.remove('hidden')
+    }
+
+    function hideGameOverModal() {
+      const modal = document.getElementById('gameOverModal')
+      modal.classList.add('hidden')
+    }
+
+    function endGame() {
+      running = false
+      stopTimer()
+      playGameOverSound()
+      showGameOverModal()
+    }
+
+    function startTimer() {
+      stopTimer()
+      timerId = setInterval(() => {
+        timeLeft--
+        timeEl.textContent = timeLeft
+        if (timeLeft <= 0) endGame()
+      }, 1000)
+    }
+
+    function spawnTarget() {
+      const pad = 100
+      const rand1 = Math.random()
+      let kind
+
+      if (rand1 < 0.15) {
+        kind = 'bomb'
+      } else if (rand1 < 0.30) {
+        kind = 'bonus'
+      } else if (rand1 < 0.65) {
+        kind = 'star'
+      } else {
+        kind = 'moon'
+      }
+
+      target.kind = kind
+      target.emoji = kind === 'moon' ? '🌙' : kind === 'bonus' ? '💎' : kind === 'bomb' ? '💣' : '⭐'
+      target.points = kind === 'bonus' ? 20 : kind === 'bomb' ? -15 : kind === 'moon' ? 18 : 10
+
+      target.r = kind === 'bonus' ? 55 : kind === 'bomb' ? 45 : kind === 'moon' ? 45 : 50
+
+      target.baseX = rand(pad, canvas.width - pad)
+      target.baseY = rand(pad, canvas.height - pad)
+
+      const speedMultiplier = 1 + (score / 1500)
+
+      target.floatAmp = (kind === 'bonus' ? 15 : kind === 'moon' ? 12 : 10) * speedMultiplier
+      target.orbitAmp = (kind === 'bonus' ? 12 : kind === 'moon' ? 10 : 8) * speedMultiplier
+      target.floatSpeed = (kind === 'bonus' ? 2.5 : kind === 'moon' ? 1.7 : 2.4) * speedMultiplier
+      target.orbitSpeed = (kind === 'bonus' ? 2.0 : kind === 'moon' ? 1.2 : 1.8) * speedMultiplier
+      target.spinSpeed = (kind === 'bonus' ? 2.5 : kind === 'moon' ? 0.9 : 1.6) * speedMultiplier
+      target.pulseSpeed = (kind === 'bonus' ? 5.0 : kind === 'moon' ? 2.3 : 3.2) * speedMultiplier
+
+      target.phase = Math.random() * Math.PI * 2
+    }
+
+    function resetGame(keepRunning = true) {
+      score = 0
+      timeLeft = 30
+      scoreEl.textContent = score
+      timeEl.textContent = timeLeft
+
+      orb.r = 18
+      orb.x = canvas.width / 2 || 200
+      orb.y = canvas.height / 2 || 200
+
+      smooth = { x: 0.5, y: 0.5 }
+      particles.length = 0
+      floatingPoints.length = 0
+      combo = 0
+      multiplier = 1
+
+      spawnTarget()
+
+      stopTimer()
+      if (keepRunning && running) {
+        startTimer()
+        playBackgroundMusic()
+      }
+    }
+
+    function playBackgroundMusic() {
+      try {
+        initAudio()
+        const baseFreq = 110
+        const notes = [0, 4, 7, 12] // Do, mi, sol, do
+        const now = audioCtx.currentTime
+
+        const playNote = (freq, startTime, duration) => {
+          const osc = audioCtx.createOscillator()
+          const gain = audioCtx.createGain()
+
+          osc.connect(gain)
+          gain.connect(audioCtx.destination)
+
+          osc.type = 'sine'
+          osc.frequency.setValueAtTime(freq, startTime)
+
+          gain.gain.setValueAtTime(0.05, startTime)
+          gain.gain.setValueAtTime(0.05, startTime + duration - 0.1)
+          gain.gain.linearRampToValueAtTime(0, startTime + duration)
+
+          osc.start(startTime)
+          osc.stop(startTime + duration)
+        }
+
+        // Tocar una secuencia de fondo suave
+        let time = now
+        for (let i = 0; i < 4; i++) {
+          const freq = baseFreq * Math.pow(2, notes[i] / 12)
+          playNote(freq, time, 0.6)
+          time += 0.5
+        }
+      } catch (e) {}
+    }
+
+    function fitCanvasToStageFallback() {
+      const rect = canvas.getBoundingClientRect()
+      const w = Math.max(320, Math.floor(rect.width))
+      const h = Math.max(240, Math.floor(rect.height))
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
+        spawnTarget()
+      }
+    }
+
+    function fitCanvasToVideo() {
+      const w = video.videoWidth,
+          h = video.videoHeight
+      if (!w || !h) return false
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
+        spawnTarget()
+      }
+      return true
+    }
+
+    async function initFaceLandmarker() {
+      const fileset = await FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm',
+      )
+      faceLandmarker = await FaceLandmarker.createFromOptions(
+        fileset,
+        {
+          baseOptions: {
+            modelAssetPath:
+              'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+            delegate: 'GPU',
+          },
+          runningMode: 'VIDEO',
+          numFaces: 1,
+        },
+      )
+    }
+
+    async function startCamera() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user' },
+        audio: false,
+      })
+      video.srcObject = stream
+
+      await new Promise((r) => (video.onloadedmetadata = r))
+      fitCanvasToVideo()
+      if (!faceLandmarker) await initFaceLandmarker()
+
+      running = true
+      resetGame(true)
+      startTimer()
+      requestAnimationFrame(loop)
+    }
+
+    let lastVideoTime = -1
+
+    function loop() {
+      const hasVideoSize = fitCanvasToVideo()
+      if (!hasVideoSize) fitCanvasToStageFallback()
+
+      if (running) {
+        const tSec = performance.now() / 1000
+        animateTarget(tSec)
+        emitSparkles()
+      }
+
+      if (running && video.currentTime !== lastVideoTime) {
+        lastVideoTime = video.currentTime
+        const res = faceLandmarker.detectForVideo(
+          video,
+          performance.now(),
+        )
+        if (res?.faceLandmarks?.length) {
+          const lm = res.faceLandmarks[0]
+          const nose = lm[1] ?? lm[4] ?? lm[5] ?? lm[19]
+          const alpha = 0.35
+          smooth.x = smooth.x + (nose.x - smooth.x) * alpha
+          smooth.y = smooth.y + (nose.y - smooth.y) * alpha
+          orb.x = (1 - smooth.x) * canvas.width
+          orb.y = smooth.y * canvas.height
+        }
+      }
+
+      if (running) {
+        const dist = Math.hypot(orb.x - target.x, orb.y - target.y)
+        const forgiveness = 10
+        if (dist < orb.r + target.r + forgiveness) {
+          const actualPoints = target.points * (target.kind === 'bonus' ? multiplier : target.kind === 'bomb' ? 1 : multiplier)
+
+          if (target.kind === 'bomb') {
+            combo = 0
+            multiplier = 1
+            screenShakeAmount = 0.8
+            screenFlashAmount = 0.5
+          } else {
+            addCombo()
+            screenShakeAmount = 0.3
+            if (target.kind === 'bonus') {
+              screenFlashAmount = 1.0
+              spawnConfetti(target.x, target.y)
+            }
+          }
+
+          score += actualPoints
+          scoreEl.textContent = score
+          spawnParticles(target.x, target.y, target.kind)
+          spawnFloatingPoints(target.x, target.y, target.points, target.kind === 'bonus')
+          playCaptureSound(target.kind)
+          spawnTarget()
+        }
+        updateParticles()
+        updateFloatingPoints()
+
+        // Decaer screen shake y flash
+        screenShakeAmount *= 0.95
+        screenFlashAmount *= 0.93
+      }
+
+      // Manejo de combo timeout
+      if (running && nowMs() - lastCaptureTime > 2000) {
+        if (combo > 0) {
+          combo = 0
+          multiplier = 1
+        }
+      }
+
+      draw()
+      requestAnimationFrame(loop)
+    }
+
+    function draw() {
+      // Aplicar screen shake
+      ctx.save()
+      if (screenShakeAmount > 0.01) {
+        const shakeX = (Math.random() - 0.5) * screenShakeAmount * 20
+        const shakeY = (Math.random() - 0.5) * screenShakeAmount * 20
+        ctx.translate(shakeX, shakeY)
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      // Aplicar screen flash
+      if (screenFlashAmount > 0.01) {
+        ctx.fillStyle = `rgba(255, 255, 200, ${screenFlashAmount * 0.4})`
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      }
+
+      if (video.videoWidth && video.videoHeight) {
+        ctx.save()
+        ctx.translate(canvas.width, 0)
+        ctx.scale(-1, 1)
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+        ctx.restore()
+      } else {
+        const g = ctx.createLinearGradient(
+          0,
+          0,
+          canvas.width,
+          canvas.height,
+        )
+        g.addColorStop(0, 'rgba(0,0,0,.65)')
+        g.addColorStop(1, 'rgba(10,15,35,.75)')
+        ctx.fillStyle = g
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      }
+
+      if (!running) return
+
+      ctx.beginPath()
+      ctx.arc(target.x, target.y, target.r + 25, 0, Math.PI * 2)
+      ctx.fillStyle =
+        target.kind === 'bomb'
+          ? 'rgba(200,50,50,0.50)'
+          : target.kind === 'bonus'
+          ? 'rgba(255,50,150,0.45)'
+          : target.kind === 'moon'
+          ? 'rgba(100,180,80,0.35)'
+          : 'rgba(255,200,0,0.35)'
+      ctx.fill()
+
+      ctx.beginPath()
+      ctx.arc(target.x, target.y, target.r + 12, 0, Math.PI * 2)
+      ctx.fillStyle =
+        target.kind === 'bomb'
+          ? 'rgba(255,100,100,0.45)'
+          : target.kind === 'bonus'
+          ? 'rgba(255,100,200,0.40)'
+          : target.kind === 'moon'
+          ? 'rgba(150,220,120,0.30)'
+          : 'rgba(255,230,100,0.30)'
+      ctx.fill()
+
+      const tSec = performance.now() / 1000
+      const pulse =
+        1 + 0.14 * Math.sin(tSec * target.pulseSpeed + target.phase)
+      const rot = tSec * target.spinSpeed
+
+      ctx.beginPath()
+      ctx.arc(target.x, target.y, target.r * pulse, 0, Math.PI * 2)
+      ctx.fillStyle =
+        target.kind === 'moon'
+          ? 'rgba(180,220,255,0.92)'
+          : 'rgba(255,215,0,0.92)'
+      ctx.fill()
+
+      ctx.save()
+      ctx.translate(target.x, target.y)
+      ctx.rotate(rot)
+
+      const img = target.kind === 'bomb' ? bombImage : target.kind === 'bonus' ? bonusImage : target.kind === 'moon' ? moonImage : starImage
+      if (img) {
+        const size = target.r * pulse * 2
+        const aspectRatio = img.width / img.height
+        let drawWidth = size
+        let drawHeight = size / aspectRatio
+
+        if (drawHeight > size) {
+          drawHeight = size
+          drawWidth = size * aspectRatio
+        }
+
+        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight)
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,.60)'
+        ctx.font = `${Math.max(18, target.r * 1.1) * pulse}px system-ui`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(target.emoji, 0, 0)
+      }
+      ctx.restore()
+
+      ctx.beginPath()
+      ctx.arc(orb.x, orb.y, orb.r, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(0,255,255,0.85)'
+      ctx.fill()
+
+      drawParticles()
+      drawFloatingPoints()
+
+      ctx.restore()
+
+      // Mostrar combo y multiplicador en UI - MEJORADO
+      if (combo > 0) {
+        const pulse = 0.9 + 0.1 * Math.sin(nowMs() * 0.01)
+        const smallScale = 0.95 + 0.05 * Math.sin(nowMs() * 0.012)
+        const centerX = canvas.width / 2
+        const centerY = 50
+
+        // Fondo de caja redondeada para combo
+        ctx.save()
+        ctx.fillStyle = `rgba(255, 100, 0, ${0.5 * pulse})`
+        ctx.strokeStyle = `rgba(255, 200, 0, ${0.8 + 0.15 * pulse})`
+        ctx.lineWidth = 2.5
+
+        const boxWidth = 140
+        const boxHeight = 50
+        ctx.beginPath()
+        ctx.roundRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth * smallScale, boxHeight, 15)
+        ctx.fill()
+        ctx.stroke()
+
+        // Texto del combo
+        ctx.fillStyle = `rgba(255, 255, 100, ${0.9 + 0.1 * pulse})`
+        ctx.font = `bold 36px system-ui`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'
+        ctx.shadowBlur = 12
+        ctx.shadowOffsetX = 2
+        ctx.shadowOffsetY = 2
+        ctx.fillText(`🔥 ${combo}`, centerX, centerY)
+        ctx.shadowColor = 'transparent'
+        ctx.restore()
+      }
+
+      if (multiplier > 1) {
+        const pulse = 0.85 + 0.15 * Math.sin(nowMs() * 0.015)
+        const smallScale = 0.93 + 0.07 * Math.sin(nowMs() * 0.018)
+        const centerX = canvas.width / 2
+        const centerY = canvas.height - 50
+
+        // Fondo de caja redondeada para multiplicador
+        ctx.save()
+        ctx.fillStyle = `rgba(255, 50, 0, ${0.55 * pulse})`
+        ctx.strokeStyle = `rgba(255, 150, 0, ${0.9 + 0.1 * pulse})`
+        ctx.lineWidth = 3
+
+        const boxWidth = 140
+        const boxHeight = 50
+        ctx.beginPath()
+        ctx.roundRect(centerX - boxWidth / 2, centerY - boxHeight / 2, boxWidth * smallScale, boxHeight, 15)
+        ctx.fill()
+        ctx.stroke()
+
+        // Texto del multiplicador
+        ctx.fillStyle = `rgba(255, 255, 0, ${0.95 + 0.05 * pulse})`
+        ctx.font = `bold 40px system-ui`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)'
+        ctx.shadowBlur = 15
+        ctx.shadowOffsetX = 3
+        ctx.shadowOffsetY = 3
+        ctx.fillText(`⚡ x${multiplier}`, centerX, centerY)
+        ctx.shadowColor = 'transparent'
+        ctx.restore()
+      }
+    }
+
+    // Configurar Modal
+    const playAgainBtn = document.getElementById('playAgainBtn')
+    const exitBtn = document.getElementById('exitBtn')
+
+    playAgainBtn.addEventListener('click', () => {
+      hideGameOverModal()
+      running = true
+      combo = 0
+      multiplier = 1
+      resetGame(true)
+      startTimer()
+      requestAnimationFrame(loop)
+    })
+
+    exitBtn.addEventListener('click', () => {
+      window.location.href = 'index.html'
+    })
+
+    // Iniciar automáticamente
+    loadImages().then(() => {
+      startCamera()
+    }).catch(err => {
+      console.warn('No se pudieron cargar las imágenes, usando emojis por defecto', err)
+      startCamera()
+    })
+  </script>
+
+</body>
+</html>
