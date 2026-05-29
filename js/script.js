@@ -21,16 +21,15 @@ let handLandmarker = null;
 let lastVideoTime = -1;
 
 /* ===================== CONFIG ===================== */
-const TOUCH_HOLD_MS = 420; // antes 850: ahora responde mucho más rápido
-const COOLDOWN_MS = 450; // antes 1000: menos espera después de responder
+const TOUCH_HOLD_MS = 120; // respuesta casi inmediata al tocar el rostro
+const COOLDOWN_MS = 350; // menos espera después de responder
 
-const THRESH_FACTOR_ENTER = 0.18; // zona de toque más amplia
-const THRESH_FACTOR_EXIT = 0.28; // evita que se pierda el toque tan fácil
+const THRESH_FACTOR_ENTER = 0.55; // zona de toque mucho más amplia: no hay que apuntar al puntico
+const THRESH_FACTOR_EXIT = 0.75; // evita que se pierda el toque tan fácil
 const SWITCH_IMPROVE_RATIO = 0.60;
 
-const SHAKE_LEFT_TH = -0.09; // giro de cabeza menos exigente
-const SHAKE_RIGHT_TH = 0.09; // giro de cabeza menos exigente
-const SHAKE_TIMEOUT_MS = 1800;
+const SMILE_THRESHOLD = 1.58; // sensibilidad de sonrisa para pasar a la siguiente pregunta
+const SMILE_HOLD_MS = 220; // tiempo mínimo sonriendo
 
 const NEUTRAL_YAW_TH = 0.10;
 const NEUTRAL_REQUIRED_FRAMES = 4;
@@ -89,8 +88,7 @@ let lockedRegion = null;
 let holdStart = null;
 let faceTargets = null;
 
-let shakeState = "idle";
-let shakeStartTime = 0;
+let smileStartTime = null;
 
 let awaitingNeutralAfterNext = false;
 let neutralFrames = 0;
@@ -211,7 +209,7 @@ function renderQuestion() {
     resetOptionStyles();
 
     if (instructionDiv) {
-        instructionDiv.innerHTML = `<strong>Primero responde.</strong> Luego mueve la cabeza de lado a lado para seguir.`;
+        instructionDiv.innerHTML = `<strong>Primero responde.</strong> Luego sonríe para seguir.`;
     }
 }
 
@@ -303,6 +301,48 @@ function estimateYaw(faceLm) {
     const midX = (left.x + right.x) / 2;
     const span = Math.max(0.0001, right.x - left.x);
     return (nose.x - midX) / span;
+}
+
+function getSmileRatio(faceLm) {
+    const leftMouth = faceLm[61];
+    const rightMouth = faceLm[291];
+    const upperLip = faceLm[13];
+    const lowerLip = faceLm[14];
+    const leftCheek = faceLm[234];
+    const rightCheek = faceLm[454];
+
+    if (!leftMouth || !rightMouth || !upperLip || !lowerLip || !leftCheek || !rightCheek) return 0;
+
+    const mouthWidth = dist2D(leftMouth, rightMouth);
+    const mouthOpen = Math.max(0.001, dist2D(upperLip, lowerLip));
+    const faceWidth = Math.max(0.001, dist2D(leftCheek, rightCheek));
+
+    // Mezcla ancho de boca y apertura para detectar sonrisa sin obligar a girar la cabeza.
+    return (mouthWidth / faceWidth) + (mouthWidth / mouthOpen) * 0.05;
+}
+
+function getRegionByFaceArea(indexTip, faceLm) {
+    const leftCheek = faceLm[234];
+    const rightCheek = faceLm[454];
+    const forehead = faceLm[10];
+    const chin = faceLm[152];
+    const nose = faceLm[1];
+
+    if (!leftCheek || !rightCheek || !forehead || !chin || !nose) return null;
+
+    const minX = Math.min(leftCheek.x, rightCheek.x) - 0.08;
+    const maxX = Math.max(leftCheek.x, rightCheek.x) + 0.08;
+    const minY = Math.min(forehead.y, nose.y) - 0.02;
+    const maxY = chin.y + 0.04;
+
+    const insideFace = indexTip.x >= minX && indexTip.x <= maxX && indexTip.y >= minY && indexTip.y <= maxY;
+    if (!insideFace) return null;
+
+    // La cara se divide en zonas grandes para que no toque llevar el puntico exacto:
+    // arriba izquierda = A, arriba derecha = B, centro = C, abajo = D.
+    if (indexTip.y > nose.y + 0.08) return "mouth";
+    if (Math.abs(indexTip.x - nose.x) < 0.09 && indexTip.y > nose.y - 0.10) return "nose";
+    return indexTip.x < nose.x ? "leftEye" : "rightEye";
 }
 
 /* ===================== OVERLAY ===================== */
@@ -411,8 +451,7 @@ function nextQuestion() {
     lockedRegion = null;
     holdStart = null;
 
-    shakeState = "idle";
-    shakeStartTime = 0;
+    smileStartTime = null;
 
     awaitingNeutralAfterNext = true;
     neutralFrames = 0;
@@ -467,7 +506,7 @@ async function loadModels() {
         numHands: 1
     });
 
-    if (iaMessage) iaMessage.textContent = "🧠 IA: lista. Toca ojos, nariz o boca para responder.";
+    if (iaMessage) iaMessage.textContent = "🧠 IA: lista. Toca cualquier zona del rostro para responder.";
 }
 
 /* ===================== LOOP ===================== */
@@ -500,7 +539,7 @@ function loop() {
         if (iaMessage) iaMessage.textContent = "🧠 IA: acércate y mira a la cámara.";
         lockedRegion = null;
         holdStart = null;
-        shakeState = "idle";
+        smileStartTime = null;
         awaitingNeutralAfterNext = false;
         neutralFrames = 0;
         return;
@@ -539,46 +578,39 @@ function loop() {
         return;
     }
 
-    /* ===== siguiente por gesto NO ===== */
+    /* ===== siguiente por sonrisa ===== */
     if (canAdvance && !inCooldown) {
-        if (shakeState === "idle") {
-            if (yaw < SHAKE_LEFT_TH) {
-                shakeState = "left";
-                shakeStartTime = t;
-            } else if (yaw > SHAKE_RIGHT_TH) {
-                shakeState = "right";
-                shakeStartTime = t;
-            }
-        } else if (shakeState === "left") {
-            if (t - shakeStartTime > SHAKE_TIMEOUT_MS) {
-                shakeState = "idle";
-            } else if (yaw > SHAKE_RIGHT_TH) {
-                canAdvance = false;
-                nextQuestion();
-                return;
-            }
-        } else if (shakeState === "right") {
-            if (t - shakeStartTime > SHAKE_TIMEOUT_MS) {
-                shakeState = "idle";
-            } else if (yaw < SHAKE_LEFT_TH) {
-                canAdvance = false;
-                nextQuestion();
-                return;
-            }
-        }
+        const smileRatio = getSmileRatio(faceLm);
+        const isSmiling = smileRatio >= SMILE_THRESHOLD;
 
-        if (iaMessage) {
-            iaMessage.textContent = "🧠 IA: mueve la cabeza de lado a lado para continuar.";
+        if (isSmiling) {
+            if (!smileStartTime) smileStartTime = t;
+
+            const smileHeld = t - smileStartTime;
+            if (iaMessage) {
+                iaMessage.textContent = "🧠 IA: sonrisa detectada 😊";
+            }
+
+            if (smileHeld >= SMILE_HOLD_MS) {
+                canAdvance = false;
+                smileStartTime = null;
+                nextQuestion();
+                return;
+            }
+        } else {
+            smileStartTime = null;
+            if (iaMessage) {
+                iaMessage.textContent = "🧠 IA: sonríe para continuar 😊";
+            }
         }
         return;
     } else {
-        shakeState = "idle";
-        shakeStartTime = 0;
+        smileStartTime = null;
     }
 
     /* ===== respuesta por toque ===== */
     if (!indexTip) {
-        if (iaMessage) iaMessage.textContent = "🧠 IA: levanta la mano y toca A, B, C o D.";
+        if (iaMessage) iaMessage.textContent = "🧠 IA: levanta la mano y toca el rostro para responder.";
         lockedRegion = null;
         holdStart = null;
         if (!answered) resetOptionStyles();
@@ -592,6 +624,8 @@ function loop() {
         return;
     }
 
+    const faceAreaRegion = getRegionByFaceArea(indexTip, faceLm);
+
     const d = {
         leftEye: dist2D(indexTip, faceTargets.leftEye),
         rightEye: dist2D(indexTip, faceTargets.rightEye),
@@ -603,32 +637,19 @@ function loop() {
         .map(([r, dist]) => ({ r, dist }))
         .sort((a, b) => a.dist - b.dist)[0];
 
-    if (!lockedRegion) {
-        if (bestNow.dist < faceTargets.enterThresh) {
-            lockedRegion = bestNow.r;
-            holdStart = t;
-        } else {
-            if (iaMessage) iaMessage.textContent = "🧠 IA: toca una zona fija del rostro para responder";
-            if (!answered) resetOptionStyles();
-            return;
-        }
-    } else {
-        const distLocked = d[lockedRegion];
+    const detectedRegion = faceAreaRegion || (bestNow.dist < faceTargets.enterThresh ? bestNow.r : null);
 
-        if (distLocked > faceTargets.exitThresh) {
-            lockedRegion = null;
-            holdStart = null;
-            if (!answered) resetOptionStyles();
-            if (iaMessage) iaMessage.textContent = "🧠 IA: suelta y vuelve a tocar";
-            return;
-        }
+    if (!detectedRegion) {
+        if (iaMessage) iaMessage.textContent = "🧠 IA: toca cualquier zona del rostro para responder";
+        lockedRegion = null;
+        holdStart = null;
+        if (!answered) resetOptionStyles();
+        return;
+    }
 
-        if (bestNow.r !== lockedRegion) {
-            if (bestNow.dist < distLocked * SWITCH_IMPROVE_RATIO) {
-                lockedRegion = bestNow.r;
-                holdStart = t;
-            }
-        }
+    if (lockedRegion !== detectedRegion) {
+        lockedRegion = detectedRegion;
+        holdStart = t;
     }
 
     const held = holdStart ? (t - holdStart) : 0;
@@ -664,7 +685,7 @@ async function init() {
         await loadModels();
 
         if (iaMessage) {
-            iaMessage.textContent = "🧠 IA: lista. Toca ojos, nariz o boca para responder.";
+            iaMessage.textContent = "🧠 IA: lista. Toca cualquier zona del rostro para responder.";
         }
 
         loop();
