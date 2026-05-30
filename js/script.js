@@ -148,8 +148,19 @@ const QUESTIONS = [{
 
 ];
 
+let shuffledQuestions = [];
+let currentQuestionIndex = 0;
+
+function shuffleQuestions() {
+    shuffledQuestions = [...QUESTIONS].sort(() => Math.random() - 0.5);
+    currentQuestionIndex = 0;
+}
+
 function getRandomQuestion() {
-    return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+    if (currentQuestionIndex < shuffledQuestions.length) {
+        return shuffledQuestions[currentQuestionIndex];
+    }
+    return null;
 }
 
 let currentQuestion = null;
@@ -503,8 +514,64 @@ function answer(opt) {
     updateScoreUI();
 }
 
+function showGameEndModal() {
+    const modal = document.createElement("div");
+    modal.className = "game-end-modal";
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-trophy">🏆</div>
+            <h1>¡Lo hiciste muy bien!</h1>
+            <p class="modal-score">Completaste todas las <strong>${QUESTIONS.length}</strong> preguntas</p>
+            <p class="modal-final-score">Puntuación final: <strong>${score} puntos</strong></p>
+            <div class="modal-buttons">
+                <button class="modal-btn play-again">Volver a Jugar</button>
+                <button class="modal-btn exit">Salir</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    setTimeout(() => modal.classList.add("show"), 10);
+
+    modal.querySelector(".play-again").addEventListener("click", restartGame);
+    modal.querySelector(".exit").addEventListener("click", () => {
+        window.location.href = "./index.html";
+    });
+}
+
+function restartGame() {
+    const modal = document.querySelector(".game-end-modal");
+    if (modal) modal.remove();
+
+    idxQ = 0;
+    score = 0;
+    streak = 0;
+    answered = false;
+    canAdvance = false;
+    lockedRegion = null;
+    holdStart = null;
+    smileStartTime = null;
+    smileLockedUntilRelease = false;
+    awaitingNeutralAfterNext = false;
+    neutralFrames = 0;
+
+    shuffleQuestions();
+    updateScoreUI();
+    renderQuestion();
+
+    soundNext();
+    showToast("🔄 ¡Nuevo juego!");
+}
+
 function nextQuestion() {
+    currentQuestionIndex++;
     idxQ = idxQ + 1;
+
+    if (currentQuestionIndex >= shuffledQuestions.length) {
+        showGameEndModal();
+        return;
+    }
 
     answered = false;
     canAdvance = false;
@@ -755,6 +822,7 @@ function loop() {
 /* ===================== INIT ===================== */
 async function init() {
     try {
+        shuffleQuestions();
         updateScoreUI();
         renderQuestion();
 
