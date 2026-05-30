@@ -1,455 +1,440 @@
+/* BASE */
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+html,
 body {
-    min-height: 100vh;
+    width: 100%;
+    min-height: 100%;
     font-family: Arial, Helvetica, sans-serif;
-    background: #ffffff;
+}
+
+body {
+    background: #000;
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-.app {
-    width: 100%;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 5%;
-}
-
-.header {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8%;
-}
-
-.logo-principal {
-    width: 20%;
-    max-width: 75%;
-    padding-right: 5%;
-}
-
-.logo-secundario {
-    width: 70%;
-}
-
-.stats {
-    width: 100%;
-    margin-bottom: 5%;
-}
-
-.stat-row {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 18px;
-    margin-bottom: 22px;
-}
-
-.stat-row span {
-    color: #08246f;
-    font-weight: 900;
-    font-size: 28px;
-    letter-spacing: 1px;
+    overflow: hidden;
 }
 
 
-.pill {
-    width: 300px;
-    height: 70px;
-    border-radius: 35px;
-    color: white;
-    font-size: 35px;
-    font-weight: 900;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+/* CONTENEDOR */
 
-.blue {
-    background: #354bd6;
-}
-
-.blue span {
-    color: #ffffff !important;
-    font-size: 30px !important;
-}
-
-.orange {
-    background: linear-gradient(90deg, #ffa733, #f27a00);
-}
-
-.orange span {
-    color: #ffffff !important;
-    font-size: 30px !important;
-}
-
-.camera-card {
-    width: 90%;
-    border-radius: 28px;
-    padding: 35px 18px 18px;
-    background: linear-gradient(90deg, #ffc15c, #f57b00);
-    position: relative;
-    height: calc(100dvh - 660px);
-    height: 100%
-}
-
-.message {
-    position: absolute;
-    top: 34px;
-    left: 19px;
-    background: #344bd6;
-    color: white;
-    border-radius: 22px;
-    padding: 8px 16px;
-    font-size: 42px;
-    font-weight: 700;
-    z-index: 1;
-}
-
-.icon {
-    margin-right: 5px;
-}
-
-.camera-box {
-    width: 100%;
-    aspect-ratio: 1 / 1.25;
-    border-radius: 24px;
-    background: linear-gradient(140deg, #ffe0a0, #f5a04d);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: calc(100dvh - 720px);
+.container {
+    width: auto;
+    height: max-content;
     position: relative;
     overflow: hidden;
 }
 
-.camera-box video,
-.camera-box canvas {
+.container .fondo {
+    width: auto;
+    height: 100dvh;
+    object-fit: contain;
+}
+
+
+/* LOGO */
+
+.logo {
     position: absolute;
-    top: 0;
-    left: 0;
+    width: 11%;
+    top: 3%;
+    right: 0%;
+    transform: translateX(-50%);
+    z-index: 5;
+}
+
+.logo-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    opacity: 0;
+    animation: logoAparece 3s ease-out forwards;
+}
+
+@keyframes logoAparece {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(-30px);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.08) translateY(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+
+/* HOME */
+
+.home {
+    position: absolute;
+    width: 70%;
+    height: auto;
+    top: 4.4%;
+    left: 0%;
+    border-radius: 50%;
+}
+
+.home img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 24px;
 }
 
-.camera-icon {
-    font-size: 52px;
-    color: white;
-    filter: grayscale(1) brightness(3);
+/* MARCADORES */
+
+.marcadores {
+    position: absolute;
+    width: 72%;
+    top: 24%;
+    left: 14%;
+    z-index: 5;
 }
 
-/* Versión web centrada */
-/* @media (min-width: 768px) {
-    .app {
-        max-width: 520px;
-        min-height: auto;
-        padding: 35px 30px;
-    }
-
-    .camera-box {
-        aspect-ratio: 1 / 1.15;
-    }
-} */
-
-@media (min-width: 1260px) {
-    body {
-        align-items: flex-start;
-    }
-
-    .app {
-        max-width: 100%;
-        min-height: auto;
-        padding: 0;
-        justify-content: flex-start;
-    }
-
-    .header {
-        margin-bottom: 2%;
-    }
-
-    .logo-secundario {
-        width: 400px;
-    }
-
-    .logo-principal {
-        width: 80px;
-        padding-right: 40px;
-    }
-
-    .camera-box {
-        aspect-ratio: 1 / 1.15;
-    }
-
-    .camera-card {
-        width: 100%;
-        max-width: 36%;
-        max-height: calc(100vh - 279px);
-    }
-
-
-    .stats {
-        margin-top: 0px;
-        margin-bottom: 0px;
-    }
-
-    .stat-row span {
-        font-size: 36px;
-
-    }
-
-    .pill.blue {
-        width: 272px;
-        height: 70px;
-        font-size: 30px;
-    }
-
-    .pill.orange {
-        width: 272px;
-        height: 70px;
-        font-size: 30px;
-    }
-
-    .message {
-        width: 400px;
-        height: 60px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: 20px;
-        gap: 10px;
-        top: 3%
-    }
+.fila {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4%;
+    margin-bottom: 4%;
 }
 
-@media (min-width: 1260px) and (max-height: 800px) {
-    .app {
-        max-width: 100%;
-        min-height: auto;
-        padding: 0;
-        justify-content: flex-start;
-        margin-top: 2%
-    }
-
-    .stat-row span {
-        font-size: 20px;
-
-    }
-
-    .pill.blue {
-        width: 200px;
-        height: 50px;
-        font-size: 30px;
-    }
-
-    .pill.orange {
-        width: 200px;
-        height: 50px;
-        font-size: 30px;
-    }
-
-    .camera-card {
-        width: 100%;
-        max-width: 36%;
-        height: calc(100vh - 260px);
-    }
-
-    .camera-box {
-        height: calc(100vh - 340px) !important;
-
-    }
+.fila h2 {
+    color: #08246f;
+    font-size: clamp(22px, 4.5vh, 42px);
+    font-weight: 900;
+    line-height: 1;
 }
 
-@media (max-width: 768px) {
-    .app {
-        padding-top: 20px;
-    }
-
-    .logo-principal {
-        width: 50px;
-        padding-right: 10px;
-    }
-
-    .logo-secundario {
-        width: 300px;
-    }
-
-    .stat-row span {
-        font-size: 18px;
-    }
-
-    .pill {
-        width: 200px;
-        height: 50px;
-        font-size: 20px;
-    }
-
-    .message {
-        font-size: 12px;
-    }
-
-    .blue span,
-    .orange span {
-        font-size: 20px !important;
-    }
-
-    .camera-box {
-        height: calc(100vh - 400px) !important;
-    }
+.pill {
+    width: 38%;
+    height: clamp(42px, 7vh, 70px);
+    border-radius: 999px;
+    color: #fff;
+    font-size: clamp(28px, 5.5vh, 52px);
+    font-weight: 900;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* Modal Personalizado */
+.azul {
+    background: #344bd6;
+}
+
+.naranja {
+    background: linear-gradient(90deg, #ffa733, #f27a00);
+}
+
+/* CÁMARA */
+
+.camara-contenedor {
+    position: absolute;
+    width: 92%;
+    height: 47%;
+    left: 4%;
+    top: 42%;
+    z-index: 5;
+    border-radius: 6%;
+    background: linear-gradient(90deg, #ffc15c, #f57b00);
+    padding: 8% 4% 4%;
+    display: flex;
+    flex-direction: column;
+}
+
+.mensaje {
+    position: absolute;
+    top: 2%;
+    left: 5%;
+    background: #344bd6;
+    color: #fff;
+    padding: 1.6% 4%;
+    border-radius: 999px;
+    font-size: clamp(10px, 1.8vh, 16px);
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.camara {
+    width: 100%;
+    height: 100%;
+    border-radius: 5%;
+    background: linear-gradient(120deg, #ffe0a2, #f1a052);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.camara span {
+    font-size: clamp(40px, 7vh, 70px);
+    filter: grayscale(1) brightness(5);
+}
+
+#canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 5%;
+}
+
+#video.video-hidden {
+    display: none !important;
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* MODAL */
+
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.85);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
-    backdrop-filter: blur(4px);
-    animation: fadeIn 0.3s ease-in;
 }
 
 .modal-overlay.hidden {
     display: none;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
 .modal-content {
-    background: linear-gradient(135deg, #ffc15c 0%, #f57b00 100%);
-    border-radius: 40px;
-    padding: 50px 40px;
-    max-width: 700px;
-    width: 95%;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: slideDown 0.4s ease-out;
+    background: linear-gradient(135deg, #344bd6, #2a3ba0);
+    padding: clamp(30px, 8vw, 60px);
+    border-radius: 20px;
     text-align: center;
-    border: 4px solid rgba(255, 255, 255, 0.3);
+    width: 90%;
+    max-width: 700px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 }
 
 .modal-content h2 {
-    color: #344bd6;
-    font-size: 48px;
+    color: #fff;
+    font-size: clamp(32px, 7vw, 48px);
+    margin-bottom: clamp(20px, 5vw, 40px);
     font-weight: 900;
-    margin-bottom: 30px;
-    letter-spacing: 1px;
 }
 
 .modal-stats {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 30px;
-    margin: 30px 0;
-    color: #344bd6;
-    font-size: 24px;
-    font-weight: 700;
-    line-height: 2;
-    backdrop-filter: blur(10px);
+    margin-bottom: clamp(20px, 5vw, 40px);
+    color: #fff;
+    font-size: clamp(16px, 3.5vw, 24px);
+    line-height: 1.8;
+}
+
+.modal-stats div {
+    margin: clamp(8px, 2vw, 15px) 0;
+    font-weight: 600;
 }
 
 .modal-buttons {
     display: flex;
-    gap: 16px;
+    gap: clamp(10px, 3vw, 20px);
     justify-content: center;
-    margin-top: 35px;
     flex-wrap: wrap;
 }
 
 .btn {
+    padding: clamp(12px, 2vw, 18px) clamp(24px, 4vw, 40px);
     border: none;
-    border-radius: 24px;
-    padding: 18px 32px;
-    font-size: 20px;
-    font-weight: 800;
+    border-radius: 999px;
+    font-size: clamp(14px, 2.5vw, 20px);
+    font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    min-width: 160px;
-    letter-spacing: 0.5px;
 }
 
 .btn-primary {
-    background: linear-gradient(90deg, #344bd6, #1a2b7f);
-    color: white;
-    box-shadow: 0 8px 20px rgba(52, 75, 214, 0.4);
+    background: linear-gradient(90deg, #ffa733, #f27a00);
+    color: #fff;
 }
 
 .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(52, 75, 214, 0.6);
-}
-
-.btn-primary:active {
-    transform: translateY(0);
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(255, 167, 51, 0.4);
 }
 
 .btn-secondary {
-    background: rgba(255, 255, 255, 0.25);
-    color: #344bd6;
-    border: 2px solid rgba(52, 75, 214, 0.5);
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 2px solid #fff;
 }
 
 .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.4);
-    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
 }
 
-.btn-secondary:active {
-    transform: translateY(0);
-}
+/* RESPONSIVE MÓVIL */
 
-/* Celulares pequeños */
-/* @media (max-width: 380px) {
-    .logo-principal {
-        width: 230px;
+@media (max-width: 767px) {
+    .marcadores {
+        width: 78%;
+        top: 23%;
+        left: 11%;
     }
 
-    .logo-secundario {
-        width: 55px;
+    .fila {
+        gap: 5%;
+        margin-bottom: 5%;
     }
 
-    .stat-row span {
-        font-size: 23px;
+    .fila h2 {
+        font-size: clamp(24px, 7vw, 36px);
     }
 
     .pill {
-        width: 130px;
-        height: 46px;
+        width: 42%;
+        height: clamp(42px, 8vw, 58px);
+        font-size: clamp(28px, 8vw, 44px);
+    }
+
+    .camara-contenedor {
+        width: 92%;
+        height: 42%;
+        left: 4%;
+        top: 41%;
+        padding: 9% 4% 4%;
+        border-radius: 7%;
+    }
+
+    .mensaje {
+        top: 2%;
+        left: 5%;
+        font-size: clamp(9px, 2.8vw, 13px);
+        padding: 1.8% 4%;
+    }
+
+    .camara {
+        border-radius: 6%;
+    }
+
+    .camara span {
+        font-size: clamp(42px, 12vw, 65px);
+    }
+}
+
+@media (max-width: 390px) {
+    .marcadores {
+        top: 22.5%;
+        width: 82%;
+        left: 9%;
+    }
+
+    .fila h2 {
+        font-size: clamp(22px, 7vw, 30px);
+    }
+
+    .pill {
+        width: 43%;
+        height: 44px;
         font-size: 30px;
     }
 
-    .message {
-        font-size: 10px;
+    .camara-contenedor {
+        top: 40%;
+        height: 43%;
     }
-} */
+
+    .mensaje {
+        font-size: 9px;
+    }
+}
+
+/* TABLETS / IPAD */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+
+    .logo {
+        width: 12%;
+        top: 3%;
+    }
+
+    .home {
+        width: 72%;
+        top: 4%;
+    }
+
+    .marcadores {
+        width: 70%;
+        left: 15%;
+        top: 22%;
+    }
+
+    .fila {
+        margin-bottom: 3%;
+    }
+
+    .fila h2 {
+        font-size: clamp(30px, 3vw, 42px);
+    }
+
+    .pill {
+        width: 40%;
+        height: 58px;
+        font-size: 42px;
+    }
+
+    .camara-contenedor {
+        width: 90%;
+        left: 5%;
+        top: 38%;
+        height: 47%;
+        padding: 7% 3% 3%;
+    }
+
+    .mensaje {
+        font-size: 13px;
+        padding: 10px 18px;
+    }
+
+    .camara span {
+        font-size: 70px;
+    }
+}
+
+
+/* FIX: evitar cámara duplicada */
+
+.camara {
+    position: relative;
+    overflow: hidden;
+}
+
+.video-hidden,
+#video {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    left: -9999px;
+    top: -9999px;
+}
+
+#canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: inherit;
+    object-fit: cover;
+}
