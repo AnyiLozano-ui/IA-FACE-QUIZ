@@ -109,10 +109,50 @@ const QUESTIONS = [{
         q: "¿Qué vitamina produce el cuerpo principalmente con la luz solar?",
         options: ["Vitamina C", "Vitamina D", "Vitamina B12", "Vitamina K"],
         answer: 1
+    },
+    {
+        q: "¿Cuál de estos NO es un lenguaje de programación?",
+        options: ["Python", "Java", "Linux", "Ruby"],
+        answer: 2
+    },
+    {
+        q: "¿Qué empresa popularizó el streaming de series y películas?",
+        options: ["Spotify", "Netflix", "Adobe", "Uber"],
+        answer: 1
+    },
+    {
+        q: "¿Qué órgano del cuerpo humano bombea sangre?",
+        options: ["Pulmón", "Cerebro", "Corazón", "Hígado"],
+        answer: 2
+    },
+    {
+        q: "¿Qué científico formuló la teoría de la relatividad?",
+        options: ["Newton", "Einstein", "Darwin", "Tesla"],
+        answer: 1
+    },
+    {
+        q: "¿Cuál es el país de origen de Samsung?",
+        options: ["Japón", "Corea del Sur", "China", "Singapur"],
+        answer: 1
+    },
+    {
+        q: "¿Qué significa “SEO” en marketing digital?",
+        options: ["Search Engine Optimization", "Social Engagement Online", "Strategic Email Operation", "Sales Experience Optimization"],
+        answer: 0
+    },
+    {
+        q: "¿Qué compañía farmacéutica desarrolló una de las primeras vacunas COVID-19 de ARN mensajero?",
+        options: ["Bayer", "Pfizer", "Roche", "Sanofi"],
+        answer: 1
     }
 
 ];
 
+function getRandomQuestion() {
+    return QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+}
+
+let currentQuestion = null;
 let idxQ = 0;
 let score = 0;
 let streak = 0;
@@ -220,11 +260,14 @@ function styleOption(index, kind) {
 }
 
 function renderQuestion() {
-    const item = QUESTIONS[idxQ % QUESTIONS.length];
+    currentQuestion = getRandomQuestion();
+    const item = currentQuestion;
 
     if (questionNumberEl) {
         questionNumberEl.textContent = `PREGUNTA ${idxQ + 1}`;
     }
+
+    console.log("Pregunta seleccionada:", item.q);
 
     if (questionText) {
         questionText.textContent = item.q;
@@ -424,7 +467,7 @@ const REGION_TO_OPTION = {
 };
 
 function answer(opt) {
-    const item = QUESTIONS[idxQ % QUESTIONS.length];
+    const item = currentQuestion;
     const correct = opt === item.answer;
 
     answered = true;
@@ -461,7 +504,7 @@ function answer(opt) {
 }
 
 function nextQuestion() {
-    idxQ = (idxQ + 1) % QUESTIONS.length;
+    idxQ = idxQ + 1;
 
     answered = false;
     canAdvance = false;
